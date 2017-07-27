@@ -26,8 +26,6 @@ let rec eval e store =
   | Plus (e1, e2) ->
     (eval e1 store) + (eval e2 store)
 
-(* x + 1 : Plus (Var "x", Int 1) *)
-
 let rec exec s store =
   match s with
   | Assign (x, e) ->
@@ -43,10 +41,3 @@ let rec exec s store =
     store
   | Seq (s1, s2) ->
     exec s2 (exec s1 store)
-
-(* x := 1; print x :
-    Seq(
-      Assign ("x", Int 1),
-      Print (Var "x")
-    )
- *)
