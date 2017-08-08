@@ -26,6 +26,7 @@ rule token = parse
   | "/"       { DIV }
   | "("       { LPAREN }
   | ")"       { RPAREN }
+  | "print"   { PRINT }
   | num  as n { INT (int_of_string n) }
   | id   as s { VAR s }
   | eof       { EOF }
