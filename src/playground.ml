@@ -7,10 +7,16 @@ module Store = Map.Make(struct
   let compare = compare
 end)
 
+type bop =
+  | Plus
+  | Minus
+  | Mult
+  | Div
+
 type e =
   | Int of n
   | Var of x
-  | Plus of e * e
+  | Bop of bop * e * e
 
 type s =
   | Assign of x * e
@@ -18,13 +24,20 @@ type s =
   | If of e * s * s
   | Print of e
   | Seq of s * s
+  | While of e * s
 
 let rec eval e store =
   match e with
   | Int n -> n
   | Var x -> Store.find x store
-  | Plus (e1, e2) ->
-    (eval e1 store) + (eval e2 store)
+  | Bop (bop, e1, e2) ->
+    (_bop bop) (eval e1 store) (eval e2 store)
+and _bop bop =
+  match bop with
+  | Plus -> (+)
+  | Minus -> (-)
+  | Mult -> ( * )
+  | Div ->  (/)
 
 let rec exec s store =
   match s with
@@ -41,3 +54,6 @@ let rec exec s store =
     store
   | Seq (s1, s2) ->
     exec s2 (exec s1 store)
+  | While (e, s') ->
+    if eval e store = 0 then store
+    else exec s (exec s' store)

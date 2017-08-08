@@ -1,0 +1,18 @@
+OASISFormat: 0.4
+Name:        PAStudy2017
+Version:     0.1
+Synopsis:    Program Analysis Study 2017 Summer
+Authors:     PLASSE
+License:     LGPL-2.1 with OCaml linking exception
+BuildTools:  ocamlbuild
+Plugins:     StdFiles (0.4), DevFiles (0.4) 
+
+Library "Playground"
+  Path            : src
+  Modules         :
+    Parser, Lexer, Playground
+
+Executable "main"
+  Path            : src
+  MainIs          : main.ml
+  CompiledObject  : byte
