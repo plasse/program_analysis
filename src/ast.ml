@@ -1,3 +1,7 @@
+open Format
+
+let fpf = fprintf
+let sfmt = std_formatter
 
 type n = int
 type x = string
@@ -8,6 +12,8 @@ module Info = struct
   type t = lab
 
   let lab_of t = t
+  let pp fmt t =
+    fpf fmt "%s%i" "@" t
 end
 
 type abop =
@@ -46,3 +52,57 @@ type s =
   | Print of a * Info.t
   | Seq of s * s
   | While of b * s * Info.t
+
+let rec pp_a fmt a =
+  match a with
+  | Int n -> fpf fmt "%d" n
+  | Var x -> fpf fmt "%s" x
+  | ABop (abop, a1, a2) ->
+    fpf fmt "%a %a %a" pp_a a1 pp_abop abop pp_a a2
+and pp_abop fmt abop =
+  match abop with
+  | Plus -> fpf fmt "+"
+  | Minus -> fpf fmt "-"
+  | Mult -> fpf fmt "*"
+  | Div -> fpf fmt "/"
+and pp_b fmt b =
+  match b with
+  | True -> fpf fmt "true"
+  | False -> fpf fmt "false"
+  | Not b -> fpf fmt "!%a" pp_b b
+  | BBop (bbop, b1, b2) ->
+    fpf fmt "%a %a %a" pp_b b1 pp_bbop bbop pp_b b2
+  | BRop (brop, a1, a2) ->
+    fpf fmt "%a %a %a" pp_a a1 pp_brop brop pp_a a2
+and pp_bbop fmt bbop =
+  match bbop with
+  | And -> fpf fmt "&&"
+  | Or -> fpf fmt "||"
+and pp_brop fmt brop =
+  match brop with
+  | Eq -> fpf fmt "=="
+  | Neq -> fpf fmt "!="
+  | Lt -> fpf fmt "<"
+  | Gt -> fpf fmt ">"
+  | Le -> fpf fmt "<="
+  | Ge -> fpf fmt ">="
+and pp_s fmt s =
+  match s with
+  | Assign (x, a, info) ->
+    fpf fmt "@[<hov 2>[%s := %a]%a@]" x pp_a a Info.pp info
+  | Skip info ->
+    fpf fmt "@[<hov 2>[skip]%a@]" Info.pp info
+  | If (b, st, sf, info) ->
+    fpf fmt "@[<hov 2>if %a then@." pp_b b;
+    fpf fmt "@[<hov 2>%a@]@." pp_s st;
+    fpf fmt "else@.";
+    fpf fmt "@[<hov 2>%a@]@." pp_s sf;
+    fpf fmt "fi@]"
+  | Print (a, info) ->
+    fpf fmt "@[<hov 2>[print %a]%a@]" pp_a a Info.pp info
+  | Seq (s1, s2) ->
+    fpf fmt "%a;@.%a" pp_s s1 pp_s s2
+  | While (b, s, info) ->
+    fpf fmt "@[<hov 2>while %a do %a@." pp_b b Info.pp info;
+    fpf fmt "@[<hov 2>%a@]@." pp_s s;
+    fpf fmt "done@]"

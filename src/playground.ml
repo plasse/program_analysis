@@ -12,8 +12,21 @@ let rec init s =
 module Lab = struct
   type t = int
   let compare = compare
+  let pp fmt t =
+    fpf fmt "%i" t
 end
-module LabSet = Set.Make(Lab)
+module LabSet = struct
+  include Set.Make(Lab)
+
+  let pp fmt t =
+    fpf fmt "{";
+    let fst = ref true in
+    iter (fun l ->
+      if !fst then fst := false else fpf fmt ", ";
+      fpf fmt "%a" Lab.pp l
+    ) t;
+    fpf fmt "}"
+end
 
 let rec final s =
   match s with
@@ -36,6 +49,57 @@ let rec labels s =
     (LabSet.union (labels st) (labels sf))
   | Seq (s1, s2) ->
     LabSet.union (labels s1) (labels s2)
+
+module Flow = struct
+  type t = Lab.t * Lab.t
+  let compare = compare
+
+  let pp fmt (f, t) =
+    fpf fmt "(%a, %a)" Lab.pp f Lab.pp t
+end
+module Flows = struct
+  include Set.Make(Flow)
+
+  let reverse t =
+    fold (fun (l, l') fs ->
+      add (l', l) fs
+    ) t empty
+
+  let pp fmt t =
+    fpf fmt "{";
+    let fst = ref true in
+    iter (fun l ->
+      if !fst then fst := false else fpf fmt ", ";
+      fpf fmt "%a" Flow.pp l
+    ) t;
+    fpf fmt "}"
+end
+
+let rec flow s =
+  match s with
+  | Assign _ -> Flows.empty
+  | Skip _ -> Flows.empty
+  | Print _ -> Flows.empty
+  | While (_, s, info) ->
+    let f1 = flow s in
+    let l = Info.lab_of info in
+    let f2 = Flows.add (l, init s) f1 in
+    LabSet.fold (fun final_of_s fs ->
+      Flows.add (final_of_s, l) fs
+    ) (final s) f2
+
+  | If (_, st, sf, info) ->
+    let f1 = Flows.union (flow st) (flow sf) in
+    let l = Info.lab_of info in
+    let f2 = Flows.add (l, init st) f1 in
+    Flows.add (l, init sf) f2
+
+  | Seq (s1, s2) ->
+    let f1 = Flows.union (flow s1) (flow s2) in
+    let init_of_s2 = init s2 in
+    LabSet.fold (fun final_of_s1 fs ->
+      Flows.add (final_of_s1, init_of_s2) fs
+    ) (final s1) f1
 
 module Store = Map.Make(struct
   type t = x
