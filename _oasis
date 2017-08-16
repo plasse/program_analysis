@@ -10,7 +10,7 @@ Plugins:     StdFiles (0.4), DevFiles (0.4)
 Library "Playground"
   Path            : src
   Modules         :
-    Parser, Lexer, Playground
+    Ast, Parser, Lexer, Playground
 
 Executable "main"
   Path            : src

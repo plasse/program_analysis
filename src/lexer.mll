@@ -27,6 +27,17 @@ rule token = parse
   | "("       { LPAREN }
   | ")"       { RPAREN }
   | "print"   { PRINT }
+  | "&&"      { AND }
+  | "||"      { OR }
+  | "="       { EQ }
+  | "!="      { NEQ }
+  | "<"       { LT }
+  | ">"       { GT }
+  | "<="      { LE }
+  | ">="      { GE }
+  | "true"    { TRUE }
+  | "false"   { FALSE }
+  | "!"       { BANG }
   | num  as n { INT (int_of_string n) }
   | id   as s { VAR s }
   | eof       { EOF }

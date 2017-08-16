@@ -1,5 +1,8 @@
 %{
-
+  let lab = ref 0
+  let get_lab () =
+    incr lab;
+    !lab
 %}
 
 /* Tokens */
@@ -7,37 +10,62 @@
 %token COLONEQ IF THEN ELSE FI SKIP
 %token WHILE DO DONE SEMI PRINT
 %token PLUS MINUS MULTI DIV
+%token AND OR XOR EQ NEQ LT GT LE GE TRUE FALSE BANG
 %token LPAREN RPAREN
 %token EOF
 %token<int> INT
 %token<string> VAR
 
 %left SEMI PLUS MINUS MULTI DIV
+%left AND OR XOR EQ NEQ LT GT LE GE
+%right BANG
 
 %start s
-%type <Playground.s> s
+%type <Ast.s> s
 
 %%
 
 s:
-  | VAR COLONEQ e         { Playground.Assign ($1, $3) }
-  | IF e THEN s ELSE s FI { Playground.If ($2, $4, $6) }
-  | SKIP                  { Playground.Skip }
-  | WHILE e DO s DONE     { Playground.While ($2, $4) }
-  | s SEMI s              { Playground.Seq ($1, $3) }
-  | PRINT e               { Playground.Print $2 }
+  | VAR COLONEQ a         { Ast.Assign ($1, $3, get_lab()) }
+  | IF b THEN s ELSE s FI { Ast.If ($2, $4, $6, get_lab()) }
+  | SKIP                  { Ast.Skip (get_lab()) }
+  | WHILE b DO s DONE     { Ast.While ($2, $4, get_lab()) }
+  | s SEMI s              { Ast.Seq ($1, $3) }
+  | PRINT a               { Ast.Print ($2, get_lab()) }
   ;
 
-e:
-  | INT                   { Playground.Int $1 }
-  | VAR                   { Playground.Var $1 }
-  | e bop e               { Playground.Bop ($2, $1, $3) }
-  | LPAREN e RPAREN       { $2 }
+a:
+  | INT                   { Ast.Int $1 }
+  | VAR                   { Ast.Var $1 }
+  | a abop a              { Ast.ABop ($2, $1, $3) }
+  | LPAREN a RPAREN       { $2 }
   ;
 
-bop:
-  | PLUS                  { Playground.Plus }
-  | MINUS                 { Playground.Minus }
-  | MULTI                 { Playground.Mult }
-  | DIV                   { Playground.Div }
+b:
+  | TRUE                  { Ast.True }
+  | FALSE                 { Ast.False }
+  | BANG b                { Ast.Not $2 }
+  | b bbop b              { Ast.BBop ($2, $1, $3) }
+  | a brop a              { Ast.BRop ($2, $1, $3) }
+  ;
+
+abop:
+  | PLUS                  { Ast.Plus }
+  | MINUS                 { Ast.Minus }
+  | MULTI                 { Ast.Mult }
+  | DIV                   { Ast.Div }
+  ;
+
+bbop:
+  | AND                   { Ast.And }
+  | OR                    { Ast.Or }
+  ;
+
+brop:
+  | EQ                    { Ast.Eq }
+  | NEQ                   { Ast.Neq }
+  | LT                    { Ast.Lt }
+  | GT                    { Ast.Gt }
+  | LE                    { Ast.Le }
+  | GE                    { Ast.Ge }
   ;
