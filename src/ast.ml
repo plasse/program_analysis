@@ -6,7 +6,17 @@ let sfmt = std_formatter
 type n = int
 type x = string
 
+module Var = struct
+  type t = x
+  let compare = compare
+end
+
 type lab = int
+
+module Lab = struct
+  type t = lab
+  let compare = compare
+end
 
 module Info = struct
   type t = lab
@@ -52,6 +62,24 @@ type s =
   | Print of a * Info.t
   | Seq of s * s
   | While of b * s * Info.t
+
+module Block = struct
+  type t =
+    | ASSIGN of x * a * Info.t
+    | SKIP of Info.t
+    | BEXPR of b * Info.t
+    | PRINT of a * Info.t
+
+  let lab_of t =
+    let info =
+      match t with
+      | ASSIGN (_, _, info) -> info
+      | SKIP info -> info
+      | BEXPR (_, info) -> info
+      | PRINT (_, info) -> info
+    in
+    Info.lab_of info
+end
 
 let rec pp_a fmt a =
   match a with

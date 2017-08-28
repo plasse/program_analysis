@@ -101,6 +101,67 @@ let rec flow s =
       Flows.add (final_of_s1, init_of_s2) fs
     ) (final s1) f1
 
+(* module Block = struct
+  type t =
+    | ASSIGN of x * a * Info.t
+    | SKIP of Info.t
+    | BEXPR of b * Info.t
+    | PRINT of a * Info.t
+end *)
+
+module Blocks = struct
+  include Set.Make(Lab)
+
+  let find_opt lab t : Block.t option =
+    fold (fun blk r_opt ->
+      match r_opt with
+      | Some _ -> r_opt
+      | None ->
+        let l' = Block.lab_of blk in
+        if lab = l' then Some blk else None
+    ) t None
+end
+
+let rec blocks s =
+  match s with
+  | Assign (x, a, info) ->
+    let blk = ASSIGN (x, a, info) in
+    Blocks.singleton blk
+  | Skip info ->
+    let blk = SKIP info in
+    Blocks.singleton blk
+  | Print (a, info) ->
+    let blk = PRINT (a, info) in
+    Blocks.singleton blk
+  | While (b, s, info) ->
+    let blk = BEXPR (b, info) in
+    Blocks.add blk (blocks s)
+  | If (b, st, sf, info) ->
+    let blk = BEXPR (b, info) in
+    Blocks.add blk
+      (Blocks.union (blocks st) (blocks sf))
+  | Seq (s1, s2) ->
+    Blocks.union (blocks s1) (blocks s2)
+
+
+module VarSet = Set.Make(struct type t = x let compare = compare end)
+
+let rec aFV a : VarSet.t =
+  match a with
+  | Int _ -> VarSet.empty
+  | Var x -> VarSet.singleton x
+  | ABop (_, a1, a2) ->
+    VarSet.union (aFV a1) (aFV a2)
+
+let rec bFV b : VarSet.t =
+  match b with
+  | True | False -> VarSet.empty
+  | Not b -> bFV b
+  | BBop (_, b1, b2) ->
+    VarSet.union (bFV b1) (bFV b2)
+  | BRop (_, a1, a2) ->
+    VarSet.union (aFV a1) (aFV a2)
+
 module Store = Map.Make(struct
   type t = x
   let compare = compare
