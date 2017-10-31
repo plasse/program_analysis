@@ -19,9 +19,10 @@ let _ =
   (* let flowr = Flows.reverse flows in *)
   (* fpf sfmt "FLOWR : %a@." Flows.pp flowr; *)
   (* Playground.exec s Playground.Store.empty *)
-  let cblks = Playground.build_cfg s in
-  let cf = Playground.flow s in
-  let dblks, df, _ = Playground.build_dfg s in
+  let cblks = build_cfg s in
+  let cf = flow s in
+  let dblks, df, _ = build_dfg s in
   fprintf std_formatter "%a"
-    Playground.pp_dot (cblks, dblks, cf, df);
-  analyzer (dblks, df)
+    pp_dot (cblks, dblks, cf, df);
+  let res = analyzer (dblks, df) in
+  pp_res err_formatter res

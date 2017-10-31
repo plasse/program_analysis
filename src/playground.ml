@@ -520,6 +520,10 @@ module Visited = struct
     fpf fmt "]"
 end
 
+type res =
+  | Filtered of Visited.t
+  | Vulnerable of Visited.t
+
 let analyzer (dblks, df) =
   let open DBlock in
   let sources =
@@ -533,19 +537,24 @@ let analyzer (dblks, df) =
   let rec trace visited n res =
     if Visited.mem n visited then res else
     match DBlocks.load n dblks with
-    | DFILTER _ -> res
+    | DFILTER _ ->
+      let visited = Visited.add n visited in
+      (Filtered visited) :: res
     | DVAR _ | DSOURCE _ ->
       let nexts = Flows.next_of n df in
       let visited = Visited.add n visited in
       LabSet.fold (trace visited) nexts res
     | DSINK info ->
       let visited = Visited.add n visited in
-      visited :: res
+      (Vulnerable visited) :: res
   in
-  let res =
-    LabSet.fold (trace Visited.empty) sources []
-  in
+  LabSet.fold (trace Visited.empty) sources []
+
+let pp_res fmt res =
   fpf efmt "%i results.@." (List.length res);
-  List.iter (fun visited ->
-    fpf efmt "%a@." Visited.pp visited
+  List.iter (function
+    | Vulnerable visited ->
+      fpf efmt "V %a@." Visited.pp visited
+    | Filtered visited ->
+      fpf efmt "F %a@." Visited.pp visited
   ) res
