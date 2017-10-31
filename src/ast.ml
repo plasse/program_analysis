@@ -16,6 +16,28 @@ type lab = int
 module Lab = struct
   type t = lab
   let compare = compare
+  let pp fmt t =
+    fpf fmt "%i" t
+
+  let cnt = ref 0
+
+  let get_lab() =
+    incr cnt;
+    !cnt
+
+  let duplicate _ = get_lab ()
+end
+module LabSet = struct
+  include Set.Make(Lab)
+
+  let pp fmt t =
+    fpf fmt "{";
+    let fst = ref true in
+    iter (fun l ->
+      if !fst then fst := false else fpf fmt ", ";
+      fpf fmt "%a" Lab.pp l
+    ) t;
+    fpf fmt "}"
 end
 
 module Info = struct
@@ -24,6 +46,9 @@ module Info = struct
   let lab_of t = t
   let pp fmt t =
     fpf fmt "%s%i" "@" t
+
+  let duplicate t =
+    lab_of t |> Lab.duplicate
 end
 
 type abop =
@@ -46,7 +71,7 @@ type brop =
 
 type a =
   | Int of n
-  | Var of x
+  | Var of x * Info.t
   | ABop of abop * a * a
 and b =
   | True
@@ -56,19 +81,51 @@ and b =
   | BRop of brop * a * a
 
 type s =
-  | Assign of x * a * Info.t
+  | Assign of x * Info.t * a * Info.t
   | Skip of Info.t
   | If of b * s * s * Info.t
   | Print of a * Info.t
   | Seq of s * s
   | While of b * s * Info.t
+  | Filter of x * Info.t * a * Info.t
+  | Source of x * Info.t * Info.t
+  | Sink of a * Info.t
 
-module Block = struct
+module DBlock = struct
+  type t =
+    | DFILTER of Info.t
+    | DVAR of x * Info.t
+    | DSOURCE of Info.t
+    | DSINK of Info.t
+
+  let compare = Pervasives.compare
+
+  let info_of t =
+    match t with
+    | DFILTER info -> info
+    | DVAR (_, info) -> info
+    | DSOURCE info -> info
+    | DSINK info -> info
+
+  let lab_of t = info_of t |> Info.lab_of
+
+  let pp fmt t =
+    match t with
+    | DFILTER info -> fprintf fmt "FILTER"
+    | DVAR (x, info) -> fprintf fmt "VAR.%s" x
+    | DSOURCE info -> fprintf fmt "SOURCE"
+    | DSINK info -> fprintf fmt "SINK"
+end
+
+module CBlock = struct
   type t =
     | ASSIGN of x * a * Info.t
     | SKIP of Info.t
     | BEXPR of b * Info.t
     | PRINT of a * Info.t
+    | FILTER of x * a * Info.t
+    | SOURCE of x * Info.t
+    | SINK of a * Info.t
 
   let lab_of t =
     let info =
@@ -77,14 +134,36 @@ module Block = struct
       | SKIP info -> info
       | BEXPR (_, info) -> info
       | PRINT (_, info) -> info
+      | FILTER (_, _, info) -> info
+      | SOURCE (_, info) -> info
+      | SINK (_, info) -> info
     in
     Info.lab_of info
+
+  let pp fmt t =
+    match t with
+    | ASSIGN (_, _, info) ->
+      fprintf fmt "ASSIGN"
+    | SKIP info ->
+      fprintf fmt "SKIP"
+    | BEXPR (_, info) ->
+      fprintf fmt "BE"
+    | PRINT (_, info) ->
+      fprintf fmt "PRINT"
+    | FILTER (_, _, info) ->
+      fprintf fmt "FILTER"
+    | SOURCE (_, info) ->
+      fprintf fmt "SOURCE"
+    | SINK (_, info) ->
+      fprintf fmt "SINK"
+
+  let compare = Pervasives.compare
 end
 
 let rec pp_a fmt a =
   match a with
   | Int n -> fpf fmt "%d" n
-  | Var x -> fpf fmt "%s" x
+  | Var (x, info) -> fpf fmt "%s:%a" x Lab.pp (Info.lab_of info)
   | ABop (abop, a1, a2) ->
     fpf fmt "%a %a %a" pp_a a1 pp_abop abop pp_a a2
 and pp_abop fmt abop =
@@ -116,8 +195,8 @@ and pp_brop fmt brop =
   | Ge -> fpf fmt ">="
 and pp_s fmt s =
   match s with
-  | Assign (x, a, info) ->
-    fpf fmt "@[<hov 2>[%s := %a]%a@]" x pp_a a Info.pp info
+  | Assign (x, infox, a, info) ->
+    fpf fmt "@[<hov 2>[%s:%a := %a]%a@]" x Info.pp infox pp_a a Info.pp info
   | Skip info ->
     fpf fmt "@[<hov 2>[skip]%a@]" Info.pp info
   | If (b, st, sf, info) ->
@@ -134,3 +213,11 @@ and pp_s fmt s =
     fpf fmt "@[<hov 2>while %a do %a@." pp_b b Info.pp info;
     fpf fmt "@[<hov 2>%a@]@." pp_s s;
     fpf fmt "done@]"
+  | Source (x, infox, info) ->
+    fpf fmt "@[<hov 2>[%s:%a := source()]%a@]" x
+      Info.pp infox Info.pp info
+  | Filter (x, infox, a, info) ->
+    fpf fmt "@[<hov 2>[%s:%a := filter(%a)]%a@]"
+      x Info.pp infox pp_a a Info.pp info
+  | Sink (a, info) ->
+    fpf fmt "@[<hov 2>[sink(%a)]%a@]" pp_a a Info.pp info
