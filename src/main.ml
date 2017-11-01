@@ -22,7 +22,9 @@ let _ =
   let cblks = build_cfg s in
   let cf = flow s in
   let dblks, df, _ = build_dfg s in
-  fprintf std_formatter "%a"
-    pp_dot (cblks, dblks, cf, df);
+  let chnl = open_out_bin (filename ^ ".dot") in
+  let fmt = Format.formatter_of_out_channel chnl in
+  fprintf fmt "%a" pp_dot (cblks, dblks, cf, df);
+  let _ = close_out chnl in
   let res = analyzer (dblks, df) in
   pp_res err_formatter res
