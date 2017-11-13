@@ -19,6 +19,9 @@ rule token = parse
   | "while"   { WHILE }
   | "do"      { DO }
   | "done"    { DONE }
+  | "source"  { SOURCE }
+  | "sink"    { SINK }
+  | "filter"  { FILTER }
   | ";"       { SEMI }
   | "+"       { PLUS }
   | "-"       { MINUS }

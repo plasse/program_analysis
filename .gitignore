@@ -20,3 +20,4 @@ setup.data
 setup.log
 src/Playground.mldylib
 src/Playground.mllib
+r.dot
