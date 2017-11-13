@@ -1,0 +1,13 @@
+x := source();
+if x > 5 then
+  if x > 3 then
+    y := filter(x + 2)
+  else
+    y := x
+  fi
+else
+  while true do
+    y := filter(x + 1)
+  done
+fi;
+sink(y)

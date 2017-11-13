@@ -1,0 +1,32 @@
+digraph {
+  n8 [label="8:ASSIGN"];
+  n10 [label="10:BE"];
+  n5 [label="5:FILTER"];
+  n1 [label="1:SOURCE"];
+  n12 [label="12:SINK"];
+  n2 [label="2:VAR.x" color="grey"];
+  n3 [label="3:VAR.x" color="grey"];
+  n4 [label="4:VAR.x" color="grey"];
+  n6 [label="6:VAR.y" color="grey"];
+  n7 [label="7:VAR.x" color="grey"];
+  n9 [label="9:VAR.y" color="grey"];
+  n11 [label="11:VAR.y" color="grey"];
+  n13 [label="13:SOURCE" color="grey"];
+  n14 [label="14:FILTER" color="grey"];
+  n15 [label="15:SINK" color="grey"];
+  n1 -> n10 [color="black"];
+  n5 -> n12 [color="black"];
+  n8 -> n12 [color="black"];
+  n10 -> n5 [color="black"];
+  n10 -> n8 [color="black"];
+  n2 -> n3 [color="blue"];
+  n2 -> n4 [color="blue"];
+  n2 -> n7 [color="blue"];
+  n4 -> n14 [color="blue"];
+  n6 -> n11 [color="blue"];
+  n7 -> n9 [color="blue"];
+  n9 -> n11 [color="blue"];
+  n11 -> n15 [color="blue"];
+  n13 -> n2 [color="blue"];
+  n14 -> n6 [color="blue"];
+}

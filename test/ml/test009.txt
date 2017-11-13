@@ -1,0 +1,7 @@
+x := source();
+y := 0;
+sum := 0;
+while y < 10 do
+  sum := sum + y
+done;
+sink (sum)

@@ -1,0 +1,6 @@
+x := source();
+y := x;
+while y < 3 do
+  y := y + 1
+done;
+sink (y)

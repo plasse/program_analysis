@@ -1,0 +1,7 @@
+x := source();
+
+while true do
+  y := filter(x + 1)
+done;
+
+sink (y)

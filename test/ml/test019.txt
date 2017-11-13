@@ -1,0 +1,9 @@
+x := source();
+while x < 3 do
+  if x > 3 then
+    x := filter(x + 1)
+  else
+    x := x
+  fi
+done;
+sink (x)

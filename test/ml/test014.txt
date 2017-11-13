@@ -1,0 +1,7 @@
+x := source();
+if false then
+  y := filter(x)
+else
+  y := x
+fi;
+sink(y)
