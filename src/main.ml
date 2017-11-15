@@ -24,7 +24,13 @@ let _ =
   let dblks, df, _ = build_dfg s in
   let chnl = open_out_bin (filename ^ ".dot") in
   let fmt = Format.formatter_of_out_channel chnl in
-  fprintf fmt "%a" pp_dot (cblks, dblks, cf, df);
+  fpf fmt "%a" pp_dot (cblks, dblks, cf, df);
   let _ = close_out chnl in
   let res = analyzer (dblks, df) in
-  pp_res err_formatter res
+  let _ = pp_res err_formatter res in
+  let ss = Playground.mutator s in
+  SSet.fold (fun s i ->
+    fpf std_formatter "[%i]@.%a@." i pp_s s;
+    i + 1
+  ) ss 1 |> ignore
+

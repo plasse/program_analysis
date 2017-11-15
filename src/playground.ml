@@ -558,3 +558,95 @@ let pp_res fmt res =
     | Filtered visited ->
       fpf efmt "F %a@." Visited.pp visited
   ) res
+
+type mutators =
+  (VarSet.t -> a list -> a -> a list) list
+
+let mutating_e (vs:VarSet.t) (mutator_es:mutators) 
+  (init: a list) (a:a) : a list =
+  List.fold_left (fun init mutator_e ->
+    mutator_e vs init a
+  ) init mutator_es
+
+let mutator (s:S.t) : SSet.t =
+  let rec mut_e (vs:VarSet.t) (m_e:mutators) (e:a) : a list =
+    match e with
+    | Int n -> mutating_e vs m_e [] e
+    | Var (x, info) -> mutating_e vs m_e [] e
+    | ABop (abop, a1, a2) ->
+      mut_e vs m_e a1 |>
+      List.fold_left (fun e_list a1 ->
+        mut_e vs m_e a2 |>
+        List.fold_left (fun e_list a2 ->
+          mutating_e vs m_e e_list (ABop (abop, a1, a2))
+        ) e_list
+      ) []
+  and mut_s (vs:VarSet.t) (m_e:mutators) (s:S.t) : VarSet.t * SSet.t =
+    match s with
+    | Assign (x, i_x, a, i_a) ->
+      mut_e vs m_e a |>
+      List.fold_left (fun sset a ->
+        SSet.add (Assign (x, i_x, a, i_a)) sset
+      ) SSet.empty |> (fun sset -> VarSet.add x vs, sset)
+    | Print (a, i) ->
+      mut_e vs m_e a |>
+      List.fold_left (fun sset a ->
+        SSet.add (Print (a, i)) sset
+      ) SSet.empty |> (fun sset -> vs, sset)
+    | Filter (x, i_x, a, i_a) ->
+      mut_e vs m_e a |>
+      List.fold_left (fun sset a ->
+        SSet.add (Filter (x, i_x, a, i_a)) sset
+      ) SSet.empty |> (fun sset -> VarSet.add x vs, sset)
+    | Source _ | Skip _ ->
+      SSet.singleton s |> (fun sset -> vs, sset)
+    | Sink (a, i) ->
+      mut_e vs m_e a |>
+      List.fold_left (fun sset a ->
+        SSet.add (Sink (a, i)) sset
+      ) SSet.empty |> (fun sset -> vs, sset)
+    | Seq (s1, s2) ->
+      let vs, s1set = mut_s vs m_e s1 in
+      let vs, s2set = mut_s vs m_e s2 in
+      SSet.fold (fun s1 sset ->
+        SSet.fold (fun s2 sset ->
+          SSet.add (Seq (s1, s2)) sset
+        ) s2set sset
+      ) s1set SSet.empty |> (fun sset -> vs, sset)
+    | If (b, s1, s2, inf) ->
+      let vs, s1set = mut_s vs m_e s1 in
+      let vs, s2set = mut_s vs m_e s2 in
+      SSet.fold (fun s1 sset ->
+        SSet.fold (fun s2 sset ->
+          SSet.add (If (b, s1, s2, inf)) sset
+        ) s2set sset
+      ) s1set SSet.empty |> (fun sset -> vs, sset)
+    | While (b, s, inf) ->
+      let vs, s1set = mut_s vs m_e s in
+      SSet.fold (fun s sset ->
+        SSet.add (While (b, s, inf)) sset
+      ) s1set SSet.empty |> (fun sset -> vs, sset)
+  in
+  let mutate_abop vs init e =
+    match e with
+    | ABop (_, a1, a2) ->
+      List.fold_left (fun e_list abop ->
+        ABop (abop, a1, a2) :: e_list
+      ) init [Plus;Minus;Mult;Div]
+    | _ -> e :: init
+  in
+  let mutate_zero vs init e =
+    match e with
+    | Int n -> (Int 0) :: init
+    | _ -> e :: init
+  in
+  let mutate_var_change vs init e =
+    match e with
+    | Var (x, info) ->
+      VarSet.fold (fun x e_list ->
+        Var (x, info) :: e_list
+      ) (VarSet.add x vs) init
+    | _ -> e :: init
+  in
+  mut_s VarSet.empty [mutate_abop; mutate_zero; mutate_var_change] s |> snd
+

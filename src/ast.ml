@@ -10,6 +10,7 @@ module Var = struct
   type t = x
   let compare = compare
 end
+module VarSet = Set.Make(Var)
 
 type lab = int
 
@@ -90,6 +91,12 @@ type s =
   | Filter of x * Info.t * a * Info.t
   | Source of x * Info.t * Info.t
   | Sink of a * Info.t
+
+module S = struct
+  type t = s
+  let compare = Pervasives.compare
+end
+module SSet = Set.Make(S)
 
 module DBlock = struct
   type t =
