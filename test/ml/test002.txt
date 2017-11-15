@@ -1,0 +1,4 @@
+x := source();
+y := filter(x + 1);
+z := 1;
+sink (x)

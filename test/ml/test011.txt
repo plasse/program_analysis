@@ -1,0 +1,3 @@
+x := source();
+y := filter(x);
+sink(y)

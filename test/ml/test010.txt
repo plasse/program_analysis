@@ -1,0 +1,7 @@
+y := source();
+sum := 0;
+while y < 10 do
+  sum := sum + y;
+  sum := filter(y)
+done;
+sink (sum)

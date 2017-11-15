@@ -1,0 +1,17 @@
+x := source();
+y := source();
+if x > 5 then
+  while true do
+    y := x;
+    z := filter(y + 1)
+  done
+else
+  if x > 3 then
+    y := x;
+    z := filter(y + 2)
+  else
+    y := x;
+    z := filter(y + 1)
+  fi
+fi;
+sink(z)

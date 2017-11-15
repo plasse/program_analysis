@@ -1,0 +1,8 @@
+x := source();
+y := source();
+if x > 5 then
+  z := filter(x + 1)
+else
+  z := filter(y + 2)
+fi;
+sink(z)
