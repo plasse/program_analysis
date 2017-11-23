@@ -48,6 +48,9 @@ module Info = struct
   let pp fmt t =
     fpf fmt "%s%i" "@" t
 
+  let gen () =
+    Lab.get_lab ()
+
   let duplicate t =
     lab_of t |> Lab.duplicate
 end
