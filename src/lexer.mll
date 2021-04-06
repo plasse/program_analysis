@@ -41,7 +41,13 @@ rule token = parse
   | "true"    { TRUE }
   | "false"   { FALSE }
   | "!"       { BANG }
+  | "//"      { comment lexbuf }
   | num  as n { INT (int_of_string n) }
   | id   as s { VAR s }
+  | eof       { EOF }
+
+and comment = parse
+  | newline   { token lexbuf }
+  | _         { comment lexbuf }
   | eof       { EOF }
 
