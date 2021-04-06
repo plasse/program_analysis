@@ -30,6 +30,7 @@ s:
   | SKIP                  { Ast.Skip (get_lab()) }
   | WHILE b DO s DONE     { Ast.While ($2, $4, get_lab()) }
   | s SEMI s              { Ast.Seq ($1, $3) }
+  | s SEMI                { $1 }
   | PRINT a               { Ast.Print ($2, get_lab()) }
   | SINK a                { Ast.Sink ($2, get_lab()) }
   ;
