@@ -304,7 +304,17 @@ let build_dfg s =
   in
   blocks (s, DBlocks.empty, Flows.empty, RD.empty)
 
-module VarSet = Set.Make(struct type t = x let compare = compare end)
+module VarSet = struct
+  include Set.Make(struct type t = x let compare = compare end)
+  let pp fmt vs =
+    let fst = ref true in
+    fprintf fmt "{ ";
+    iter (fun v ->
+      if !fst then fst := false else fprintf fmt ", ";
+      fprintf fmt "%s" v
+    ) vs;
+    fprintf fmt " }"
+end
 
 let rec aFV a : VarSet.t =
   match a with
@@ -600,7 +610,7 @@ let mutator (s:S.t) : SSet.t =
       List.fold_left (fun e_list a1 ->
         mut_e vs m_e a2 |>
         List.fold_left (fun e_list a2 ->
-          mutating_e vs m_e e_list (ABop (abop, a1, a2))
+          (ABop (abop, a1, a2)) :: e_list
         ) e_list
       ) []
   and mut_s (vs:VarSet.t) (m_e:e_mutators) (m_s:s_mutators) (s:S.t)
@@ -611,22 +621,19 @@ let mutator (s:S.t) : SSet.t =
       List.fold_left (fun sset a ->
         SSet.add (Assign (x, i_x, a, i_a)) sset
       ) SSet.empty |>
-      (fun sset -> VarSet.add x vs,
-        SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> VarSet.add x vs, sset)
     | Print (a, i) ->
       mut_e vs m_e a |>
       List.fold_left (fun sset a ->
         SSet.add (Print (a, i)) sset
       ) SSet.empty |>
-      (fun sset -> vs,
-        SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> vs, sset)
     | Filter (x, i_x, a, i_a) ->
       mut_e vs m_e a |>
       List.fold_left (fun sset a ->
         SSet.add (Filter (x, i_x, a, i_a)) sset
       ) SSet.empty |>
-      (fun sset -> VarSet.add x vs,
-        SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> VarSet.add x vs, sset)
     | Source _ | Skip _ ->
       SSet.singleton s |> (fun sset -> vs, sset)
     | Sink (a, i) ->
@@ -634,35 +641,27 @@ let mutator (s:S.t) : SSet.t =
       List.fold_left (fun sset a ->
         SSet.add (Sink (a, i)) sset
       ) SSet.empty |>
-        (fun sset -> vs,
-          SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> vs, sset)
     | Seq (s1, s2) ->
       let vs, s1set = mut_s vs m_e m_s s1 in
       let vs, s2set = mut_s vs m_e m_s s2 in
-      SSet.fold (fun s1 sset ->
-        SSet.fold (fun s2 sset ->
-          SSet.add (Seq (s1, s2)) sset
-        ) s2set sset
+      SSet.fold (fun s1 ->
+        SSet.fold (fun s2 -> SSet.add (Seq (s1, s2))) s2set
       ) s1set SSet.empty |>
-        (fun sset -> vs,
-          SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> vs, sset)
     | If (b, s1, s2, inf) ->
-      let vs, s1set = mut_s vs m_e m_s s1 in
-      let vs, s2set = mut_s vs m_e m_s s2 in
-      SSet.fold (fun s1 sset ->
-        SSet.fold (fun s2 sset ->
-          SSet.add (If (b, s1, s2, inf)) sset
-        ) s2set sset
+      let vs1, s1set = mut_s vs m_e m_s s1 in
+      let vs2, s2set = mut_s vs m_e m_s s2 in
+      let vs = VarSet.inter vs1 vs2 in
+      SSet.fold (fun s1 ->
+        SSet.fold (fun s2 -> SSet.add (If (b, s1, s2, inf))) s2set
       ) s1set SSet.empty |>
-      (fun sset -> vs,
-        SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      (fun sset -> vs, sset)
     | While (b, s, inf) ->
-      let vs, s1set = mut_s vs m_e m_s s in
-      SSet.fold (fun s sset ->
-        SSet.add (While (b, s, inf)) sset
-      ) s1set SSet.empty |>
-      (fun sset -> vs,
-        SSet.fold (mutating_s vs m_s) sset SSet.empty)
+      let vs1, s1set = mut_s vs m_e m_s s in
+      let vs = VarSet.inter vs vs1 in
+      SSet.fold (fun s -> SSet.add (While (b, s, inf))) s1set SSet.empty |>
+      (fun sset -> vs, sset)
   in
   let mutate_abop vs init e =
     match e with
